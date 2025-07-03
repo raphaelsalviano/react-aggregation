@@ -1,0 +1,15 @@
+# .npmignore
+src/
+tests/
+*.test.ts
+*.test.js
+.github/
+.gitignore
+tsconfig.json
+jest.config.js
+.eslintrc.js
+.prettierrc
+yarn.lock
+node_modules/
+coverage/
+.nyc_output/
