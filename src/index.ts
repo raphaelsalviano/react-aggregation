@@ -6,5 +6,5 @@ import aggregate from './aggregation';
 
 const ReactAggregation = aggregate;
 
-export { ReactAggregation };
+export { ReactAggregation, aggregate };
 export default ReactAggregation;
