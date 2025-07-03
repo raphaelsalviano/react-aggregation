@@ -14,11 +14,26 @@
     "build": "yarn run clean && tsc -p ./tsconfig.json",
     "build:watch": "tsc --watch -p ./tsconfig.json",
     "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:performance": "jest tests/performance --testTimeout=30000",
+    "test:ci": "jest --coverage --watchAll=false --ci",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "test:update-snapshots": "jest --updateSnapshot",
+    "test:silent": "jest --silent",
+    "test:verbose": "jest --verbose"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.4.1",
     "@commitlint/config-conventional": "^19.4.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@typescript-eslint/eslint-plugin": "5.59.11",
     "@typescript-eslint/parser": "5.59.11",
     "commitizen": "^4.3.0",
@@ -29,7 +44,10 @@
     "eslint-plugin-react": "7.32.2",
     "eslint-plugin-react-hooks": "4.6.0",
     "husky": "^9.1.7",
+    "jest": "^30.0.0",
+    "jest-environment-jsdom": "^30.0.0",
     "prettier": "2.8.8",
+    "ts-jest": "^29.4.0",
     "typescript": "4.8.4"
   },
   "dependencies": {
