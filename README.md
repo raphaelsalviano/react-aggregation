@@ -38,6 +38,24 @@ yarn add react-aggregation
 
 After installation, you can import it to start using it in your React application.
 
+### Import Options
+
+Você pode importar a biblioteca de várias maneiras:
+
+```typescript
+// Importação padrão (recomendada)
+import ReactAggregation from 'react-aggregation';
+
+// Importação nomeada da função principal
+import { aggregate } from 'react-aggregation';
+
+// Importação nomeada do alias ReactAggregation
+import { ReactAggregation } from 'react-aggregation';
+
+// Importação de tipos e outras funções
+import { DatabaseAdapter, DefaultObject, PipelineStage } from 'react-aggregation';
+```
+
 ## Setup
 
 To use `react-aggregation` with any database, you need to create a custom adapter that will interface between the
@@ -206,9 +224,8 @@ export class RealmAdapter implements DatabaseAdapter {
 Once you've created the adapter, you need to configure it for use with the library:
 
 ```typescript
-import { DatabaseConfig } from 'react-aggregation';
+import ReactAggregation, { DatabaseConfig } from 'react-aggregation';
 import { RealmAdapter } from './adapters/realmAdapter';
-import { aggregate } from 'react-aggregation';
 import { ProdutoSchema, UsuarioSchema } from './schemas';
 
 // Create and initialize the Realm adapter
@@ -241,7 +258,7 @@ async function getActiveProducts() {
   ];
 
   // Execute the aggregation
-  const result = await aggregate('Product', aggregationPipeline, databaseConfigs);
+  const result = await ReactAggregation('Product', aggregationPipeline, databaseConfigs);
 
   console.log('Active products:', result);
   return result;
@@ -299,7 +316,7 @@ Here's an example of how to integrate the library with React components:
 ```typescript jsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList } from 'react-native';
-import { aggregate } from 'react-aggregation';
+import ReactAggregation from 'react-aggregation';
 import { databaseConfigs } from './database/config';
 
 interface Product {
@@ -324,7 +341,7 @@ const ProductsScreen: React.FC = () => {
         ];
 
         // Execute aggregation
-        const result = await aggregate<Product>(
+        const result = await ReactAggregation<Product>(
           'Product',
           aggregationPipeline,
           databaseConfigs
