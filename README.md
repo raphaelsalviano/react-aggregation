@@ -1,10 +1,14 @@
 # react-aggregation
 
-[![npm version](https://img.shields.io/npm/v/react-aggregation.svg)](https://www.npmjs.com/package/react-aggregation)
+[![npm version](https://badge.fury.io/js/react-aggregation.svg)](https://badge.fury.io/js/react-aggregation)
+[![GitHub Package Registry version](https://img.shields.io/github/package-json/v/raphaelsalviano/react-aggregation.svg?label=github)](https://github.com/raphaelsalviano/react-aggregation/packages)
+[![npm downloads](https://img.shields.io/npm/dm/react-aggregation.svg)](https://www.npmjs.com/package/react-aggregation)
+[![Build Status](https://github.com/raphaelsalviano/react-aggregation/workflows/CI/badge.svg)](https://github.com/raphaelsalviano/react-aggregation/actions)
 [![License](https://img.shields.io/npm/l/react-aggregation.svg)](https://github.com/seuusuario/react-aggregation/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-4.8.4-blue.svg)](https://www.typescriptlang.org/)
 
-A TypeScript library for creating aggregation pipelines in React applications, inspired by MongoDB's aggregation syntax, allowing you to filter, transform, and manipulate data efficiently.
+A TypeScript library for creating aggregation pipelines in React applications, inspired by MongoDB's aggregation syntax,
+allowing you to filter, transform, and manipulate data efficiently.
 
 ## Table of Contents
 
@@ -36,40 +40,42 @@ After installation, you can import it to start using it in your React applicatio
 
 ## Setup
 
-To use `react-aggregation` with any database, you need to create a custom adapter that will interface between the library and your chosen database.
+To use `react-aggregation` with any database, you need to create a custom adapter that will interface between the
+library and your chosen database.
 
 ### 1. Creating a Database Adapter
 
-The main component for using the library with your preferred database is the adapter. Below is an example of how to create a custom adapter:
+The main component for using the library with your preferred database is the adapter. Below is an example of how to
+create a custom adapter:
 
 ```typescript
-import {DatabaseAdapter, DefaultObject, PipelineStage} from 'react-aggregation';
+import { DatabaseAdapter, DefaultObject, PipelineStage } from 'react-aggregation';
 import sift from 'sift';
 
 // Custom adapter for your database
 export class MyAdapterDatabase implements DatabaseAdapter {
 
-    // Implementation of the $match stage (filtering)
-    async matchStage<T = DefaultObject>(
-        collection: DefaultObject[],
-        criteria: PipelineStage
-    ): Promise<T[]> {
-        try {
-            // Using sift to implement MongoDB-style queries
-            const filteredCollection = collection.filter(sift(criteria));
-            return filteredCollection as T[];
-        } catch (error) {
-            console.error('Error executing $match stage:', error);
-            return [] as T[];
-        }
+  // Implementation of the $match stage (filtering)
+  async matchStage<T = DefaultObject>(
+    collection: DefaultObject[],
+    criteria: PipelineStage
+  ): Promise<T[]> {
+    try {
+      // Using sift to implement MongoDB-style queries
+      const filteredCollection = collection.filter(sift(criteria));
+      return filteredCollection as T[];
+    } catch (error) {
+      console.error('Error executing $match stage:', error);
+      return [] as T[];
     }
+  }
 
-    // Database-specific helper methods
-    private async getDatabaseData(collectionName: string): Promise<any[]> {
-        // Implement your database-specific logic
-        // Return data as an array of objects
-        return [];
-    }
+  // Database-specific helper methods
+  private async getDatabaseData(collectionName: string): Promise<any[]> {
+    // Implement your database-specific logic
+    // Return data as an array of objects
+    return [];
+  }
 
 }
 ```
@@ -79,118 +85,118 @@ export class MyAdapterDatabase implements DatabaseAdapter {
 Here's a specific adapter for Realm:
 
 ```typescript
-import {DatabaseAdapter, DefaultObject, PipelineStage} from 'react-aggregation';
+import { DatabaseAdapter, DefaultObject, PipelineStage } from 'react-aggregation';
 import Realm from 'realm';
 import sift from 'sift';
 
 export class RealmAdapter implements DatabaseAdapter {
-    private realmInstance?: Realm;
+  private realmInstance?: Realm;
 
-    // Method to initialize Realm
-    async initialize(
-        schemas: Realm.ObjectSchema[],
-        partition: string,
-        path: string,
-        networkuser: string,
-        token: string
-    ): Promise<boolean> {
-        try {
-            if (!schemas || !schemas.length) {
-                throw new Error('Schemas are required');
-            }
+  // Method to initialize Realm
+  async initialize(
+    schemas: Realm.ObjectSchema[],
+    partition: string,
+    path: string,
+    networkuser: string,
+    token: string
+  ): Promise<boolean> {
+    try {
+      if (!schemas || !schemas.length) {
+        throw new Error('Schemas are required');
+      }
 
-            const realmAccessBehavior: Realm.OpenRealmBehaviorConfiguration = {
-                type: 'downloadBeforeOpen' as Realm.OpenRealmBehaviorType,
-                timeOutBehavior: 'openLocalRealm' as Realm.OpenRealmTimeOutBehavior,
-                timeOut: 900000,
-            };
+      const realmAccessBehavior: Realm.OpenRealmBehaviorConfiguration = {
+        type: 'downloadBeforeOpen' as Realm.OpenRealmBehaviorType,
+        timeOutBehavior: 'openLocalRealm' as Realm.OpenRealmTimeOutBehavior,
+        timeOut: 900000,
+      };
 
-            const anonymousUser = await this.loginCustomRealm(networkuser, token);
+      const anonymousUser = await this.loginCustomRealm(networkuser, token);
 
-            const realmConfiguration: Realm.Configuration = {
-                schema: schemas,
-                path: path,
-                sync: {
-                    newRealmFileBehavior: realmAccessBehavior,
-                    existingRealmFileBehavior: realmAccessBehavior,
-                    user: anonymousUser as unknown as Realm.User,
-                    partitionValue: partition,
-                    onError: (_session, error) => console.error('Error on sync:', error),
-                },
-            };
+      const realmConfiguration: Realm.Configuration = {
+        schema: schemas,
+        path: path,
+        sync: {
+          newRealmFileBehavior: realmAccessBehavior,
+          existingRealmFileBehavior: realmAccessBehavior,
+          user: anonymousUser as unknown as Realm.User,
+          partitionValue: partition,
+          onError: (_session, error) => console.error('Error on sync:', error),
+        },
+      };
 
-            this.realmInstance = await Realm.open(realmConfiguration);
-            return !!this.realmInstance;
-        } catch (error) {
-            console.error('Error initializing Realm:', error);
-            return false;
-        }
+      this.realmInstance = await Realm.open(realmConfiguration);
+      return !!this.realmInstance;
+    } catch (error) {
+      console.error('Error initializing Realm:', error);
+      return false;
+    }
+  }
+
+  // Implementation of getCollection for Realm
+  async getCollection<T = DefaultObject>(collectionName: string): Promise<T[]> {
+    if (!this.realmInstance) {
+      throw new Error('Realm has not been initialized');
     }
 
-    // Implementation of getCollection for Realm
-    async getCollection<T = DefaultObject>(collectionName: string): Promise<T[]> {
-        if (!this.realmInstance) {
-            throw new Error('Realm has not been initialized');
-        }
-
-        try {
-            const objects = this.realmInstance.objects<T>(collectionName);
-            return Array.from(objects).map(obj => this.serializeRealmObject(obj)) as T[];
-        } catch (error) {
-            console.error(`Error getting collection ${collectionName}:`, error);
-            return [] as T[];
-        }
+    try {
+      const objects = this.realmInstance.objects<T>(collectionName);
+      return Array.from(objects).map(obj => this.serializeRealmObject(obj)) as T[];
+    } catch (error) {
+      console.error(`Error getting collection ${collectionName}:`, error);
+      return [] as T[];
     }
+  }
 
-    // Implementation of toArray for Realm
-    async toArray<T = DefaultObject>(collection: never): Promise<T[]> {
-        const objects = collection as unknown as Realm.Results<any>;
-        return Array.from(objects).map(obj => this.serializeRealmObject(obj)) as T[];
+  // Implementation of toArray for Realm
+  async toArray<T = DefaultObject>(collection: never): Promise<T[]> {
+    const objects = collection as unknown as Realm.Results<any>;
+    return Array.from(objects).map(obj => this.serializeRealmObject(obj)) as T[];
+  }
+
+  // Implementation of matchStage for Realm
+  async matchStage<T = DefaultObject>(
+    collection: DefaultObject[],
+    criteria: PipelineStage
+  ): Promise<T[]> {
+    try {
+      // Using sift to implement MongoDB-style queries
+      const filteredCollection = collection.filter(sift(criteria));
+      return filteredCollection as T[];
+    } catch (error) {
+      console.error('Error executing $match stage:', error);
+      return [] as T[];
     }
+  }
 
-    // Implementation of matchStage for Realm
-    async matchStage<T = DefaultObject>(
-        collection: DefaultObject[],
-        criteria: PipelineStage
-    ): Promise<T[]> {
-        try {
-            // Using sift to implement MongoDB-style queries
-            const filteredCollection = collection.filter(sift(criteria));
-            return filteredCollection as T[];
-        } catch (error) {
-            console.error('Error executing $match stage:', error);
-            return [] as T[];
-        }
+  // Helper to serialize Realm objects
+  private serializeRealmObject<T>(obj: T): T {
+    if (!obj) return obj;
+
+    // Realm.Object has a toJSON method, but sometimes
+    // manual serialization is needed for nested objects
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  // Method for Realm authentication
+  private async loginCustomRealm(networkuser: string, token: string): Promise<Realm.User> {
+    // Implement Realm authentication logic
+    // This is just an example and should be adapted to your case
+
+    const credentials = Realm.Credentials.jwt(token);
+    const app = new Realm.App({ id: networkuser });
+    return app.logIn(credentials);
+  }
+
+  // Method to close connection
+  async close(): Promise<boolean> {
+    if (this.realmInstance) {
+      this.realmInstance.close();
+      this.realmInstance = null;
+      return true;
     }
-
-    // Helper to serialize Realm objects
-    private serializeRealmObject<T>(obj: T): T {
-        if (!obj) return obj;
-
-        // Realm.Object has a toJSON method, but sometimes
-        // manual serialization is needed for nested objects
-        return JSON.parse(JSON.stringify(obj));
-    }
-
-    // Method for Realm authentication
-    private async loginCustomRealm(networkuser: string, token: string): Promise<Realm.User> {
-        // Implement Realm authentication logic
-        // This is just an example and should be adapted to your case
-
-        const credentials = Realm.Credentials.jwt(token);
-        const app = new Realm.App({id: networkuser});
-        return app.logIn(credentials);
-    }
-
-    // Method to close connection
-    async close(): Promise<boolean> {
-        if (this.realmInstance) {
-            this.realmInstance.close();
-            this.realmInstance = null;
-            return true;
-        }
-        return false;
-    }
+    return false;
+  }
 
 }
 ```
@@ -200,45 +206,45 @@ export class RealmAdapter implements DatabaseAdapter {
 Once you've created the adapter, you need to configure it for use with the library:
 
 ```typescript
-import {DatabaseConfig} from 'react-aggregation';
-import {RealmAdapter} from './adapters/realmAdapter';
-import {aggregate} from 'react-aggregation';
-import {ProdutoSchema, UsuarioSchema} from './schemas';
+import { DatabaseConfig } from 'react-aggregation';
+import { RealmAdapter } from './adapters/realmAdapter';
+import { aggregate } from 'react-aggregation';
+import { ProdutoSchema, UsuarioSchema } from './schemas';
 
 // Create and initialize the Realm adapter
 const realmAdapter = new RealmAdapter();
 await realmAdapter.initialize(
-    [ProductSchema, UserSchema],
-    'my_partition',
-    'database_path',
-    'auth_user',
-    'auth_token'
+  [ProductSchema, UserSchema],
+  'my_partition',
+  'database_path',
+  'auth_user',
+  'auth_token'
 );
 
 // Configure the library
 const databaseConfigs: DatabaseConfig[] = [
-    {
-        defaultAdapter: realmAdapter,
-        rules: {
-            collections: ['Product', 'User']
-        }
+  {
+    defaultAdapter: realmAdapter,
+    rules: {
+      collections: ['Product', 'User']
     }
+  }
 ];
 
 // Example of using the aggregate function
 async function getActiveProducts() {
-    // Aggregation pipeline with multiple stages
-    const aggregationPipeline = [
-        {$match: {active: true}},
-        {$sort: {price: -1}},
-        {$limit: 10}
-    ];
+  // Aggregation pipeline with multiple stages
+  const aggregationPipeline = [
+    { $match: { active: true } },
+    { $sort: { price: -1 } },
+    { $limit: 10 }
+  ];
 
-    // Execute the aggregation
-    const result = await aggregate('Product', aggregationPipeline, databaseConfigs);
+  // Execute the aggregation
+  const result = await aggregate('Product', aggregationPipeline, databaseConfigs);
 
-    console.log('Active products:', result);
-    return result;
+  console.log('Active products:', result);
+  return result;
 }
 
 ```
@@ -250,37 +256,37 @@ The function supports various aggregation stages, similar to those in MongoDB: `
 ```typescript
 // Example of pipeline with multiple stages
 const aggregationPipeline = [
-    // $match stage - filters documents
-    {$match: {category: 'electronics', price: {$gt: 1000}}},
+  // $match stage - filters documents
+  { $match: { category: 'electronics', price: { $gt: 1000 } } },
 
-    // $lookup stage - combines documents from another collection
-    {
-        $lookup: {
-            from: 'manufacturers',
-            localField: 'manufacturerId',
-            foreignField: '_id',
-            as: 'manufacturerInfo'
-        }
-    },
+  // $lookup stage - combines documents from another collection
+  {
+    $lookup: {
+      from: 'manufacturers',
+      localField: 'manufacturerId',
+      foreignField: '_id',
+      as: 'manufacturerInfo'
+    }
+  },
 
-    // $unwind stage - expands arrays
-    {$unwind: '$manufacturerInfo'},
+  // $unwind stage - expands arrays
+  { $unwind: '$manufacturerInfo' },
 
-    // $project stage - selects specific fields
-    {
-        $project: {
-            name: 1,
-            price: 1,
-            'manufacturerInfo.name': 1,
-            discount: {$multiply: ['$price', 0.1]}
-        }
-    },
+  // $project stage - selects specific fields
+  {
+    $project: {
+      name: 1,
+      price: 1,
+      'manufacturerInfo.name': 1,
+      discount: { $multiply: ['$price', 0.1] }
+    }
+  },
 
-    // $sort stage - sorts results
-    {$sort: {price: -1}},
+  // $sort stage - sorts results
+  { $sort: { price: -1 } },
 
-    // $limit stage - limits number of results
-    {$limit: 5}
+  // $limit stage - limits number of results
+  { $limit: 5 }
 ];
 
 const result = await aggregate('Product', aggregationPipeline, databaseConfigs);
@@ -291,73 +297,73 @@ const result = await aggregate('Product', aggregationPipeline, databaseConfigs);
 Here's an example of how to integrate the library with React components:
 
 ```typescript jsx
-import React, {useEffect, useState} from 'react';
-import {View, Text, FlatList} from 'react-native';
-import {aggregate} from 'react-aggregation';
-import {databaseConfigs} from './database/config';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList } from 'react-native';
+import { aggregate } from 'react-aggregation';
+import { databaseConfigs } from './database/config';
 
 interface Product {
-    id: string;
-    name: string;
-    price: number;
-    category: string;
+  id: string;
+  name: string;
+  price: number;
+  category: string;
 }
 
 const ProductsScreen: React.FC = () => {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                // Pipeline with multiple stages
-                const aggregationPipeline = [
-                    {$match: {category: 'electronics'}},
-                    {$sort: {price: -1}},
-                    {$limit: 20}
-                ];
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Pipeline with multiple stages
+        const aggregationPipeline = [
+          { $match: { category: 'electronics' } },
+          { $sort: { price: -1 } },
+          { $limit: 20 }
+        ];
 
-                // Execute aggregation
-                const result = await aggregate<Product>(
-                    'Product',
-                    aggregationPipeline,
-                    databaseConfigs
-                );
-
-                setProducts(result);
-            } catch (error) {
-                console.error('Error fetching products:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, []);
-
-    if (loading) {
-        return (
-            <View>
-                <Text>Loading products...</Text>
-            </View>
+        // Execute aggregation
+        const result = await aggregate<Product>(
+          'Product',
+          aggregationPipeline,
+          databaseConfigs
         );
-    }
 
+        setProducts(result);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (loading) {
     return (
-        <View>
-            <Text>Electronic Products</Text>
-            <FlatList
-                data={products}
-                keyExtractor={(item) => item.id}
-                renderItem={({item}) => (
-                    <View>
-                        <Text>{item.name}</Text>
-                        <Text>$ {item.price.toFixed(2)}</Text>
-                    </View>
-                )}
-            />
-        </View>
+      <View>
+        <Text>Loading products...</Text>
+      </View>
     );
+  }
+
+  return (
+    <View>
+      <Text>Electronic Products</Text>
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View>
+            <Text>{item.name}</Text>
+            <Text>$ {item.price.toFixed(2)}</Text>
+          </View>
+        )}
+      />
+    </View>
+  );
 };
 
 export default ProductsScreen;
@@ -367,21 +373,21 @@ export default ProductsScreen;
 
 The current library supports the following aggregation stages:
 
-| Stage          | Description                                                               |
-|----------------|--------------------------------------------------------------------------|
-| `$addFields`   | Adds new fields to documents                                               |
-| `$count`       | Counts documents in the pipeline                                           |
-| `$facet`       | Processes multiple aggregation pipelines in parallel                        |
-| `$group`       | Groups documents by a specified expression                                  |
-| `$limit`       | Limits the number of documents passed to the next stage                    |
-| `$lookup`      | Performs a "join" with documents from another collection                  |
-| `$match`       | Filters documents to pass only those that match the conditions            |
-| `$project`     | Selects specific fields from documents                                    |
-| `$replaceRoot` | Substitui o documento por um documento especificado                        |
-| `$search`      | Realiza pesquisa de texto                                                  |
-| `$skip`        | Pula um número específico de documentos                                    |
-| `$sort`        | Ordena documentos                                                          |
-| `$unwind`      | Deconstruir um campo de array em múltiplos documentos                      |
+| Stage          | Description                                                    |
+|----------------|----------------------------------------------------------------|
+| `$addFields`   | Adds new fields to documents                                   |
+| `$count`       | Counts documents in the pipeline                               |
+| `$facet`       | Processes multiple aggregation pipelines in parallel           |
+| `$group`       | Groups documents by a specified expression                     |
+| `$limit`       | Limits the number of documents passed to the next stage        |
+| `$lookup`      | Performs a "join" with documents from another collection       |
+| `$match`       | Filters documents to pass only those that match the conditions |
+| `$project`     | Selects specific fields from documents                         |
+| `$replaceRoot` | Substitui o documento por um documento especificado            |
+| `$search`      | Realiza pesquisa de texto                                      |
+| `$skip`        | Pula um número específico de documentos                        |
+| `$sort`        | Ordena documentos                                              |
+| `$unwind`      | Deconstruir um campo de array em múltiplos documentos          |
 
 ## Types
 
@@ -395,26 +401,26 @@ export type AggregationPipeline = PipelineStage[];
 
 // Database adapter interface
 export interface DatabaseAdapter {
-    // Implements the match operation (filtering)
-    matchStage<T = DefaultObject>(
-        collection: DefaultObject[],
-        pipeline: PipelineStage
-    ): Promise<T[]>;
+  // Implements the match operation (filtering)
+  matchStage<T = DefaultObject>(
+    collection: DefaultObject[],
+    pipeline: PipelineStage
+  ): Promise<T[]>;
 }
 
 // Database rules configuration
 export interface DatabaseRules {
-    /**
-     * Collections available to be used
-     * by the database instance
-     */
-    collections: string[];
+  /**
+   * Collections available to be used
+   * by the database instance
+   */
+  collections: string[];
 }
 
 // Complete database configuration
 export interface DatabaseConfig {
-    defaultAdapter: DatabaseAdapter;
-    rules: DatabaseRules;
+  defaultAdapter: DatabaseAdapter;
+  rules: DatabaseRules;
 }
 ```
 
@@ -528,7 +534,8 @@ To request new features:
 
 In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to
 make participation in our project a harassment-free experience for everyone, regardless of age, body
-size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race,
+size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance,
+race,
 religion, or sexual identity and orientation.
 
 ### Our Standards
@@ -591,7 +598,8 @@ The MIT License is a permissive license, which means that:
 - You can freely use the code in personal and commercial projects
 - You can modify and distribute the code
 - You can include the code in projects with different licenses
-- The only obligation is to include a copy of the MIT license and copyright notice in any copy of the software/source code
+- The only obligation is to include a copy of the MIT license and copyright notice in any copy of the software/source
+  code
 
 This license was chosen to maximize reuse and contribution to the project, while maintaining minimal requirements for
 end users.
