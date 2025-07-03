@@ -1,1 +1,12 @@
+# Não executar em CI ou se for bot
+if [ -n "$CI" ] || [ "$HUSKY_GIT_PARAMS" = "--no-verify" ]; then
+  exit 0
+fi
+
+# Verificar se é um commit de bot
+if echo "$1" | grep -q "github-actions\|dependabot\|renovate"; then
+  exit 0
+fi
+
+
 exec < /dev/tty && npx cz --hook || true

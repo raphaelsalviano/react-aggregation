@@ -1,0 +1,249 @@
+# .github/workflows/release.yml
+name: Release and Publish
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - '.github/**'
+      - '**/*.md'
+
+jobs:
+  # Job para verificar se deve fazer release
+  should-release:
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.check.outputs.should-release }}
+      release-type: ${{ steps.check.outputs.release-type }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if should release
+        id: check
+        run: |
+          # Verificar se não é um commit de release
+          if [[ "${{ github.event.head_commit.message }}" =~ ^(chore\(release\)|chore: bump version|Merge pull request) ]]; then
+            echo "should-release=false" >> $GITHUB_OUTPUT
+            echo "Skipping release for automated commit"
+            exit 0
+          fi
+          
+          # Verificar se há commits convencionais desde a última tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "release-type=patch" >> $GITHUB_OUTPUT
+          else
+            # Verificar commits desde a última tag
+            COMMITS=$(git log $LAST_TAG..HEAD --oneline)
+            if echo "$COMMITS" | grep -q "^[a-f0-9]\+ \(feat\|fix\|docs\|style\|refactor\|perf\|test\|chore\)"; then
+              echo "should-release=true" >> $GITHUB_OUTPUT
+          
+              # Determinar tipo de release
+              if echo "$COMMITS" | grep -q "BREAKING CHANGE\|!:"; then
+                echo "release-type=major" >> $GITHUB_OUTPUT
+              elif echo "$COMMITS" | grep -q "^[a-f0-9]\+ feat"; then
+                echo "release-type=minor" >> $GITHUB_OUTPUT
+              else
+                echo "release-type=patch" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "should-release=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  # Job de testes
+  test:
+    runs-on: ubuntu-latest
+    needs: should-release
+    if: needs.should-release.outputs.should-release == 'true'
+
+    strategy:
+      matrix:
+        node-version: [ 16.x, 18.x, 20.x ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run linter
+        run: yarn lint
+
+      - name: Run tests
+        run: yarn test
+
+      - name: Build
+        run: yarn build
+
+  # Job de release
+  release:
+    runs-on: ubuntu-latest
+    needs: [ should-release, test ]
+    if: needs.should-release.outputs.should-release == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Usar PAT para permitir push de tags
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: |
+          # Instalar sem husky em CI
+          CI=true yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: version
+        run: |
+          RELEASE_TYPE="${{ needs.should-release.outputs.release-type }}"
+          
+          # Fazer bump sem git hooks
+          OLD_VERSION=$(node -p "require('./package.json').version")
+          npm version $RELEASE_TYPE --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "old-version=$OLD_VERSION" >> $GITHUB_OUTPUT
+          echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag-name=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # Commit e push com --no-verify para pular husky
+          git add package.json
+          git commit -m "chore(release): bump version to v$NEW_VERSION [skip ci]" --no-verify
+          git tag "v$NEW_VERSION"
+          git push origin master --no-verify
+          git push origin "v$NEW_VERSION" --no-verify
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Gerar changelog simples
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            CHANGELOG="Initial release"
+          else
+            CHANGELOG=$(git log $LAST_TAG..HEAD~1 --pretty=format:"* %s" --no-merges)
+          fi
+          
+          # Salvar changelog em arquivo para uso posterior
+          echo "$CHANGELOG" > CHANGELOG.tmp
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag-name }}
+          release_name: Release ${{ steps.version.outputs.tag-name }}
+          body: |
+            ## What's Changed
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.version.outputs.old-version }}...${{ steps.version.outputs.tag-name }}
+          draft: false
+          prerelease: false
+
+  # Job de publicação NPM
+  publish-npm:
+    runs-on: ubuntu-latest
+    needs: [ release ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: CI=true yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Job de publicação GitHub Packages
+  publish-github:
+    runs-on: ubuntu-latest
+    needs: [ release ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install dependencies
+        run: CI=true yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+
+      - name: Configure package.json for GitHub Packages
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            const originalName = pkg.name;
+            pkg.name = '@${{ github.repository_owner }}/' + originalName;
+            pkg.publishConfig = {
+              registry: 'https://npm.pkg.github.com',
+              access: 'public'
+            };
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

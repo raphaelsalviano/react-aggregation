@@ -5,11 +5,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "react-native": "src/index.ts",
   "scripts": {
-    "postinstall": "npx husky",
+    "postinstall": "is-ci || husky install",
     "clean": "rm -rf dist",
     "build": "yarn run clean && tsc -p ./tsconfig.json",
     "build:watch": "tsc --watch -p ./tsconfig.json",
@@ -25,30 +27,45 @@
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "test:update-snapshots": "jest --updateSnapshot",
     "test:silent": "jest --silent",
-    "test:verbose": "jest --verbose"
+    "test:verbose": "jest --verbose",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "version": "git add -A src",
+    "postversion": "git push && git push --tags",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "publish:npm": "npm publish",
+    "publish:github": "npm publish --registry=https://npm.pkg.github.com"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.4.1",
     "@commitlint/config-conventional": "^19.4.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
-    "@typescript-eslint/eslint-plugin": "5.59.11",
-    "@typescript-eslint/parser": "5.59.11",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "commitizen": "^4.3.0",
     "cz-conventional-changelog": "^3.3.0",
-    "eslint": "7.11.0",
-    "eslint-config-prettier": "8.8.0",
-    "eslint-plugin-prettier": "4.2.1",
-    "eslint-plugin-react": "7.32.2",
-    "eslint-plugin-react-hooks": "4.6.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "husky": "^9.1.7",
+    "is-ci": "^4.1.0",
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.0.0",
-    "prettier": "2.8.8",
+    "prettier": "^3.2.5",
+    "semantic-release": "^24.2.6",
     "ts-jest": "^29.4.0",
-    "typescript": "4.8.4"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
     "sift": "^17.1.3"
@@ -80,5 +97,18 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
