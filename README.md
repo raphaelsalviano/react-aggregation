@@ -16,6 +16,7 @@ allowing you to filter, transform, and manipulate data efficiently.
 - [Setup and Usage](#setup)
 - [Supported Stages](#supported-stages)
 - [Types](#types)
+- [Testing](#testing)
 - [Contribution](#contribution)
 - [Code of Conduct](#code-of-conduct)
 - [License](#license)
@@ -440,6 +441,207 @@ export interface DatabaseConfig {
   rules: DatabaseRules;
 }
 ```
+
+## Testing
+
+The project includes a comprehensive test suite to ensure reliability and correctness of all aggregation operations. The
+tests are organized into different categories to cover various aspects of the library.
+
+### Test Structure
+
+``` 
+tests/
+├── unit/                    # Unit tests for individual components
+│   └── stages/             # Tests for aggregation stages
+│       └── match.test.ts   # $match stage tests
+├── integration/            # Integration tests
+│   └── aggregation-pipeline.test.ts  # Pipeline integration tests
+├── performance/            # Performance tests
+│   └── large-datasets.test.ts        # Large dataset handling tests
+├── __fixtures__/          # Mock data for testing
+└── mocks/                 # Mock implementations
+    └── database-adapter.ts # Mock database adapter
+```
+
+### Running Tests
+
+To run the test suite, use the following commands:
+
+``` bash
+# Run all tests
+yarn test
+
+# Run tests in watch mode
+yarn test --watch
+
+# Run tests with coverage report
+yarn test --coverage
+
+# Run specific test file
+yarn test match.test.ts
+
+# Run tests for specific pattern
+yarn test --testNamePattern="should filter"
+```
+
+### Test Categories
+
+#### 1. Unit Tests
+
+Unit tests focus on individual aggregation stages and their specific functionality:
+
+- **$match Stage Tests**: Test filtering operations with various criteria
+    - Basic filtering (exact matches, boolean fields, string fields)
+    - Complex criteria (operators like , , , , ) `$gt``$lt``$in``$nin``$ne`
+    - Field existence checks using `$exists`
+    - Edge cases and error handling
+
+``` typescript
+// Example unit test
+it('should filter by exact match', async () => {
+  const result = await adapter.matchStage('products', {
+    category: 'electronics'
+  });
+  
+  expect(result).toHaveLength(2);
+  expect(result.every(p => p.category === 'electronics')).toBe(true);
+});
+```
+
+#### 2. Integration Tests
+
+Integration tests verify that different components work together correctly:
+
+- **Aggregation Pipeline**: Tests the complete pipeline execution
+- **Database Adapter Integration**: Tests adapter methods with real-world scenarios
+- **Error Handling**: Tests graceful handling of invalid inputs and edge cases
+
+``` typescript
+// Example integration test
+it('should execute complex aggregation pipeline', async () => {
+  const pipeline = [
+    { $match: { category: 'electronics', active: true } },
+    { $sort: { price: -1 } },
+    { $limit: 5 }
+  ];
+  
+  const result = await aggregate('products', pipeline, configs);
+  expect(result).toHaveLength(5);
+  expect(result[0].price).toBeGreaterThan(result[1].price);
+});
+```
+
+#### 3. Performance Tests
+
+Performance tests ensure the library handles large datasets efficiently:
+
+- **Large Dataset Handling**: Tests with 10,000+ documents
+- **Memory Usage**: Verifies efficient memory management
+- **Execution Time**: Ensures operations complete within acceptable timeframes
+
+``` typescript
+// Example performance test
+it('should handle large dataset efficiently', async () => {
+  const startTime = performance.now();
+  
+  const result = await adapter.matchStage('products', {
+    category: 'electronics'
+  });
+  
+  const executionTime = performance.now() - startTime;
+  expect(executionTime).toBeLessThan(1000); // Less than 1 second
+});
+```
+
+### Mock Data and Fixtures
+
+The test suite uses mock data to ensure consistent and predictable test results:
+
+``` typescript
+// Example mock data structure
+export const mockProducts = [
+  {
+    _id: '1',
+    name: 'Laptop',
+    price: 1200,
+    category: 'electronics',
+    active: true,
+    manufacturerId: 'man1'
+  },
+  {
+    _id: '2',
+    name: 'Book',
+    price: 25,
+    category: 'books',
+    active: true,
+    manufacturerId: 'man2'
+  }
+];
+```
+
+### Writing Tests
+
+When contributing to the project, please ensure your changes include appropriate tests:
+
+1. **Unit Tests**: For new aggregation stages or modifications to existing ones
+2. **Integration Tests**: For features that involve multiple components
+3. **Performance Tests**: For changes that might affect performance
+
+#### Test Guidelines
+
+- Use descriptive test names that explain what is being tested
+- Include both positive and negative test cases
+- Test edge cases and error conditions
+- Ensure tests are independent and can run in any order
+- Use meaningful assertions that verify the expected behavior
+
+``` typescript
+// Good test example
+describe('$match Stage', () => {
+  describe('complex criteria', () => {
+    it('should filter using multiple conditions with AND logic', async () => {
+      const result = await adapter.matchStage('products', {
+        category: 'electronics',
+        active: true,
+        price: { $gt: 1000 }
+      });
+      
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Laptop');
+      expect(result[0].category).toBe('electronics');
+      expect(result[0].active).toBe(true);
+      expect(result[0].price).toBeGreaterThan(1000);
+    });
+  });
+});
+```
+
+### Continuous Integration
+
+The project uses automated testing in CI/CD pipelines to ensure:
+
+- All tests pass before merging changes
+- Code coverage remains above the minimum threshold
+- Performance benchmarks are maintained
+- No regressions are introduced
+
+### Test Coverage
+
+The project maintains high test coverage across all components:
+
+- **Statements**: > 90%
+- **Branches**: > 85%
+- **Functions**: > 90%
+- **Lines**: > 90%
+
+To check current coverage:
+
+``` bash
+yarn test --coverage
+```
+
+This will generate a detailed coverage report showing which parts of the code are covered by tests and which areas need
+additional testing.
 
 ## Contribution
 
