@@ -4,82 +4,79 @@
 [![License](https://img.shields.io/npm/l/react-aggregation.svg)](https://github.com/seuusuario/react-aggregation/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-4.8.4-blue.svg)](https://www.typescriptlang.org/)
 
-Uma biblioteca TypeScript para criar pipelines de agregação em aplicações React, inspirada na sintaxe de agregação do
-MongoDB, permitindo filtrar, transformar e manipular dados de forma eficiente.
+A TypeScript library for creating aggregation pipelines in React applications, inspired by MongoDB's aggregation syntax, allowing you to filter, transform, and manipulate data efficiently.
 
-## Índice
+## Table of Contents
 
-- [Instalação](#instalação)
-- [Configuração e Uso](#configuração)
-- [Estágios Suportados](#estágios-suportados)
-- [Tipos](#tipos)
-- [Contribuição](#contribuição)
-- [Código de Conduta](#código-de-conduta)
-- [Licença](#licença)
+- [Installation](#installation)
+- [Setup and Usage](#setup)
+- [Supported Stages](#supported-stages)
+- [Types](#types)
+- [Contribution](#contribution)
+- [Code of Conduct](#code-of-conduct)
+- [License](#license)
 
-## Instalação
+## Installation
 
-A biblioteca pode ser instalada usando os seguintes métodos:
+The library can be installed using the following methods:
 
-### Usando npm
+### Using npm
 
 ```bash
 npm install react-aggregation
 ```
 
-### Usando yarn
+### Using yarn
 
 ```bash
 yarn add react-aggregation
 ```
 
-Após a instalação, você pode importá-la para começar a usá-la em sua aplicação React.
+After installation, you can import it to start using it in your React application.
 
-## Configuração
+## Setup
 
-Para utilizar o `react-aggregation` com qualquer banco de dados, é necessário criar um adaptador personalizado que fará
-a interface entre a biblioteca e o banco de dados escolhido.
+To use `react-aggregation` with any database, you need to create a custom adapter that will interface between the library and your chosen database.
 
-### 1. Criando um adaptador para Banco de Dados
+### 1. Creating a Database Adapter
 
-O componente principal para utilizar a biblioteca com seu banco de dados preferido é o adaptador. Abaixo está um exemplo
-de como criar um adaptador personalizado:
+The main component for using the library with your preferred database is the adapter. Below is an example of how to create a custom adapter:
 
 ```typescript
 import {DatabaseAdapter, DefaultObject, PipelineStage} from 'react-aggregation';
 import sift from 'sift';
 
-// Adaptador personalizado para seu banco de dados
+// Custom adapter for your database
 export class MyAdapterDatabase implements DatabaseAdapter {
 
-    // Implementação do estágio $match (filtragem)
+    // Implementation of the $match stage (filtering)
     async matchStage<T = DefaultObject>(
         collection: DefaultObject[],
         criteria: PipelineStage
     ): Promise<T[]> {
         try {
-            // Usando sift para implementar consultas estilo MongoDB
+            // Using sift to implement MongoDB-style queries
             const filteredCollection = collection.filter(sift(criteria));
             return filteredCollection as T[];
         } catch (error) {
-            console.error('Erro ao executar estágio $match:', error);
+            console.error('Error executing $match stage:', error);
             return [] as T[];
         }
     }
 
-    // Métodos auxiliares específicos para seu banco
-    private async obterDadosDoBanco(collectionName: string): Promise<any[]> {
-        // Implemente a lógica específica do seu banco de dados
-        // Retorne os dados como array de objetos
+    // Database-specific helper methods
+    private async getDatabaseData(collectionName: string): Promise<any[]> {
+        // Implement your database-specific logic
+        // Return data as an array of objects
         return [];
     }
 
 }
 ```
 
-### Exemplo completo com Realm
+### Complete Example with Realm
 
-Segue um adaptador específico para o Realm:
+Here's a specific adapter for Realm:
 
 ```typescript
 import {DatabaseAdapter, DefaultObject, PipelineStage} from 'react-aggregation';
@@ -89,7 +86,7 @@ import sift from 'sift';
 export class RealmAdapter implements DatabaseAdapter {
     private realmInstance?: Realm;
 
-    // Método para inicializar o Realm
+    // Method to initialize Realm
     async initialize(
         schemas: Realm.ObjectSchema[],
         partition: string,
@@ -99,7 +96,7 @@ export class RealmAdapter implements DatabaseAdapter {
     ): Promise<boolean> {
         try {
             if (!schemas || !schemas.length) {
-                throw new Error('Schemas são obrigatórios');
+                throw new Error('Schemas are required');
             }
 
             const realmAccessBehavior: Realm.OpenRealmBehaviorConfiguration = {
@@ -125,67 +122,67 @@ export class RealmAdapter implements DatabaseAdapter {
             this.realmInstance = await Realm.open(realmConfiguration);
             return !!this.realmInstance;
         } catch (error) {
-            console.error('Erro ao inicializar Realm:', error);
+            console.error('Error initializing Realm:', error);
             return false;
         }
     }
 
-    // Implementação de getCollection para Realm
+    // Implementation of getCollection for Realm
     async getCollection<T = DefaultObject>(collectionName: string): Promise<T[]> {
         if (!this.realmInstance) {
-            throw new Error('Realm não foi inicializado');
+            throw new Error('Realm has not been initialized');
         }
 
         try {
             const objects = this.realmInstance.objects<T>(collectionName);
             return Array.from(objects).map(obj => this.serializeRealmObject(obj)) as T[];
         } catch (error) {
-            console.error(`Erro ao obter coleção ${collectionName}:`, error);
+            console.error(`Error getting collection ${collectionName}:`, error);
             return [] as T[];
         }
     }
 
-    // Implementação de toArray para Realm
+    // Implementation of toArray for Realm
     async toArray<T = DefaultObject>(collection: never): Promise<T[]> {
         const objects = collection as unknown as Realm.Results<any>;
         return Array.from(objects).map(obj => this.serializeRealmObject(obj)) as T[];
     }
 
-    // Implementação de matchStage para Realm
+    // Implementation of matchStage for Realm
     async matchStage<T = DefaultObject>(
         collection: DefaultObject[],
         criteria: PipelineStage
     ): Promise<T[]> {
         try {
-            // Usando sift para implementar consultas estilo MongoDB
+            // Using sift to implement MongoDB-style queries
             const filteredCollection = collection.filter(sift(criteria));
             return filteredCollection as T[];
         } catch (error) {
-            console.error('Erro ao executar estágio $match:', error);
+            console.error('Error executing $match stage:', error);
             return [] as T[];
         }
     }
 
-    // Auxiliar para serializar objetos Realm
+    // Helper to serialize Realm objects
     private serializeRealmObject<T>(obj: T): T {
         if (!obj) return obj;
 
-        // Realm.Object tem um método toJSON, mas às vezes é necessário
-        // fazer uma serialização manual para objetos aninhados
+        // Realm.Object has a toJSON method, but sometimes
+        // manual serialization is needed for nested objects
         return JSON.parse(JSON.stringify(obj));
     }
 
-    // Método para autenticação no Realm
+    // Method for Realm authentication
     private async loginCustomRealm(networkuser: string, token: string): Promise<Realm.User> {
-        // Implemente a lógica de autenticação do Realm
-        // Este é apenas um exemplo e deve ser adaptado ao seu caso
+        // Implement Realm authentication logic
+        // This is just an example and should be adapted to your case
 
         const credentials = Realm.Credentials.jwt(token);
         const app = new Realm.App({id: networkuser});
         return app.logIn(credentials);
     }
 
-    // Método para fechar conexão
+    // Method to close connection
     async close(): Promise<boolean> {
         if (this.realmInstance) {
             this.realmInstance.close();
@@ -198,9 +195,9 @@ export class RealmAdapter implements DatabaseAdapter {
 }
 ```
 
-### 2. Configurando a biblioteca
+### 2. Configuring the Library
 
-Uma vez criado o adaptador, você precisa configurá-lo para uso com a biblioteca:
+Once you've created the adapter, you need to configure it for use with the library:
 
 ```typescript
 import {DatabaseConfig} from 'react-aggregation';
@@ -208,90 +205,90 @@ import {RealmAdapter} from './adapters/realmAdapter';
 import {aggregate} from 'react-aggregation';
 import {ProdutoSchema, UsuarioSchema} from './schemas';
 
-// Criar e inicializar o adaptador Realm
+// Create and initialize the Realm adapter
 const realmAdapter = new RealmAdapter();
 await realmAdapter.initialize(
-    [ProdutoSchema, UsuarioSchema],
-    'minha_particao',
-    'caminho_do_banco',
-    'usuario_auth',
-    'token_auth'
+    [ProductSchema, UserSchema],
+    'my_partition',
+    'database_path',
+    'auth_user',
+    'auth_token'
 );
 
-// Configurar a biblioteca
+// Configure the library
 const databaseConfigs: DatabaseConfig[] = [
     {
         defaultAdapter: realmAdapter,
         rules: {
-            collections: ['Produto', 'Usuario']
+            collections: ['Product', 'User']
         }
     }
 ];
 
-// Exemplo de uso da função aggregate
-async function buscarProdutosAtivos() {
-    // Pipeline de agregação com vários estágios
+// Example of using the aggregate function
+async function getActiveProducts() {
+    // Aggregation pipeline with multiple stages
     const aggregationPipeline = [
-        {$match: {ativo: true}},
-        {$sort: {preco: -1}},
+        {$match: {active: true}},
+        {$sort: {price: -1}},
         {$limit: 10}
     ];
 
-    // Executar a agregação
-    const resultado = await aggregate('Produto', aggregationPipeline, databaseConfigs);
+    // Execute the aggregation
+    const result = await aggregate('Product', aggregationPipeline, databaseConfigs);
 
-    console.log('Produtos ativos:', resultado);
-    return resultado;
+    console.log('Active products:', result);
+    return result;
 }
 
 ```
 
-### 3. Usando estágios de agregação
+### 3. Using Aggregation Stages
 
-A função suporta vários estágios de agregação, semelhantes aos do MongoDB: `aggregate`
+The function supports various aggregation stages, similar to those in MongoDB: `aggregate`
 
 ```typescript
-// Exemplo de pipeline com múltiplos estágios
+// Example of pipeline with multiple stages
 const aggregationPipeline = [
-    // Estágio $match - filtra documentos
-    {$match: {categoria: 'eletrônicos', preco: {$gt: 1000}}},
+    // $match stage - filters documents
+    {$match: {category: 'electronics', price: {$gt: 1000}}},
 
-    // Estágio $lookup - combina documentos de outra coleção
+    // $lookup stage - combines documents from another collection
     {
         $lookup: {
-            from: 'fabricantes',
-            localField: 'fabricanteId',
+            from: 'manufacturers',
+            localField: 'manufacturerId',
             foreignField: '_id',
-            as: 'fabricanteInfo'
+            as: 'manufacturerInfo'
         }
     },
 
-    // Estágio $unwind - expande arrays
-    {$unwind: '$fabricanteInfo'},
+    // $unwind stage - expands arrays
+    {$unwind: '$manufacturerInfo'},
 
-    // Estágio $project - seleciona campos específicos
+    // $project stage - selects specific fields
     {
         $project: {
-            nome: 1,
-            preco: 1,
-            'fabricanteInfo.nome': 1,
-            desconto: {$multiply: ['$preco', 0.1]}
+            name: 1,
+            price: 1,
+            'manufacturerInfo.name': 1,
+            discount: {$multiply: ['$price', 0.1]}
         }
     },
 
-    // Estágio $sort - ordena resultados
-    {$sort: {preco: -1}},
+    // $sort stage - sorts results
+    {$sort: {price: -1}},
 
-    // Estágio $limit - limita número de resultados
+    // $limit stage - limits number of results
     {$limit: 5}
 ];
 
-const resultado = await aggregate('Produto', aggregationPipeline, databaseConfigs);
+const result = await aggregate('Product', aggregationPipeline, databaseConfigs);
 ```
 
-### 4. Integrando com Componentes React
+### 4. Integrating with React Components
 
-Aqui está um exemplo de como integrar a biblioteca com componentes React:
+Here's an example of how to integrate the library with React components:
 
 ```typescript jsx
 import React, {useEffect, useState} from 'react';
@@ -299,63 +296,63 @@ import {View, Text, FlatList} from 'react-native';
 import {aggregate} from 'react-aggregation';
 import {databaseConfigs} from './database/config';
 
-interface Produto {
+interface Product {
     id: string;
-    nome: string;
-    preco: number;
-    categoria: string;
+    name: string;
+    price: number;
+    category: string;
 }
 
-const ProdutosScreen: React.FC = () => {
-    const [produtos, setProdutos] = useState<Produto[]>([]);
+const ProductsScreen: React.FC = () => {
+    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const buscarProdutos = async () => {
+        const fetchProducts = async () => {
             try {
-                // Pipeline com múltiplos estágios
+                // Pipeline with multiple stages
                 const aggregationPipeline = [
-                    {$match: {categoria: 'eletrônicos'}},
-                    {$sort: {preco: -1}},
+                    {$match: {category: 'electronics'}},
+                    {$sort: {price: -1}},
                     {$limit: 20}
                 ];
 
-                // Executar agregação
-                const resultado = await aggregate<Produto>(
-                    'Produto',
+                // Execute aggregation
+                const result = await aggregate<Product>(
+                    'Product',
                     aggregationPipeline,
                     databaseConfigs
                 );
 
-                setProdutos(resultado);
+                setProducts(result);
             } catch (error) {
-                console.error('Erro ao buscar produtos:', error);
+                console.error('Error fetching products:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        buscarProdutos();
+        fetchProducts();
     }, []);
 
     if (loading) {
         return (
             <View>
-                <Text>Carregando produtos...</Text>
+                <Text>Loading products...</Text>
             </View>
         );
     }
 
     return (
         <View>
-            <Text>Produtos Eletrônicos</Text>
+            <Text>Electronic Products</Text>
             <FlatList
-                data={produtos}
+                data={products}
                 keyExtractor={(item) => item.id}
                 renderItem={({item}) => (
                     <View>
-                        <Text>{item.nome}</Text>
-                        <Text>R$ {item.preco.toFixed(2)}</Text>
+                        <Text>{item.name}</Text>
+                        <Text>$ {item.price.toFixed(2)}</Text>
                     </View>
                 )}
             />
@@ -363,207 +360,207 @@ const ProdutosScreen: React.FC = () => {
     );
 };
 
-export default ProdutosScreen;
+export default ProductsScreen;
 ```
 
-## Estágios Suportados
+## Supported Stages
 
-A biblioteca atual suporta os seguintes estágios de agregação:
+The current library supports the following aggregation stages:
 
-| Estágio        | Descrição                                                                  |
-|----------------|----------------------------------------------------------------------------|
-| `$addFields`   | Adiciona novos campos aos documentos                                       |
-| `$count`       | Conta documentos no pipeline                                               |
-| `$facet`       | Processa múltiplos pipelines de agregação em paralelo                      |
-| `$group`       | Agrupa documentos por uma expressão especificada                           |
-| `$limit`       | Limita o número de documentos passados para o próximo estágio              |
-| `$lookup`      | Realiza um "join" com documentos de outra coleção                          |
-| `$match`       | Filtra documentos para passar apenas aqueles que correspondem às condições |
-| `$project`     | Seleciona campos específicos dos documentos                                |
+| Stage          | Description                                                               |
+|----------------|--------------------------------------------------------------------------|
+| `$addFields`   | Adds new fields to documents                                               |
+| `$count`       | Counts documents in the pipeline                                           |
+| `$facet`       | Processes multiple aggregation pipelines in parallel                        |
+| `$group`       | Groups documents by a specified expression                                  |
+| `$limit`       | Limits the number of documents passed to the next stage                    |
+| `$lookup`      | Performs a "join" with documents from another collection                  |
+| `$match`       | Filters documents to pass only those that match the conditions            |
+| `$project`     | Selects specific fields from documents                                    |
 | `$replaceRoot` | Substitui o documento por um documento especificado                        |
 | `$search`      | Realiza pesquisa de texto                                                  |
 | `$skip`        | Pula um número específico de documentos                                    |
 | `$sort`        | Ordena documentos                                                          |
 | `$unwind`      | Deconstruir um campo de array em múltiplos documentos                      |
 
-## Tipos
+## Types
 
-Aqui você encontra os `types` da biblioteca.
+Here you can find the library's `types`.
 
 ```typescript
-// Tipos básicos
+// Basic types
 export type DefaultObject = Record<string, any>;
 export type PipelineStage = Record<string, any>;
 export type AggregationPipeline = PipelineStage[];
 
-// Interface do adaptador de banco de dados
+// Database adapter interface
 export interface DatabaseAdapter {
-    // Implementa a operação de match (filtragem)
+    // Implements the match operation (filtering)
     matchStage<T = DefaultObject>(
         collection: DefaultObject[],
         pipeline: PipelineStage
     ): Promise<T[]>;
 }
 
-// Configurações de regras para banco de dados
+// Database rules configuration
 export interface DatabaseRules {
     /**
-     * Coleções disponíveis a serem utilizadas
-     * pela instancia de database
+     * Collections available to be used
+     * by the database instance
      */
     collections: string[];
 }
 
-// Configuração completa do banco de dados
+// Complete database configuration
 export interface DatabaseConfig {
     defaultAdapter: DatabaseAdapter;
     rules: DatabaseRules;
 }
 ```
 
-## Contribuição
+## Contribution
 
-Agradecemos seu interesse em contribuir para o projeto `react-aggregation`! Sua ajuda é fundamental para melhorar e
-expandir a biblioteca. Abaixo estão as diretrizes para contribuir.
+We appreciate your interest in contributing to the `react-aggregation` project! Your help is essential to improve and
+expand the library. Below are the guidelines for contributing.
 
-### Como Contribuir
+### How to Contribute
 
-1. **Fork do Repositório**
-    - Faça um fork do projeto para sua conta GitHub
-    - Clone o repositório para seu ambiente local:
+1. **Fork the Repository**
+    - Fork the project to your GitHub account
+    - Clone the repository to your local environment:
 
 ```shell
    git clone https://github.com/seu-usuario/react-aggregation.git
    cd react-aggregation
 ```
 
-2. **Configuração do Ambiente**
-    - Instale as dependências:
+2. **Environment Setup**
+    - Install dependencies:
 
 ```shell
    yarn install
 ```
 
-    - Compile o projeto:
+    - Build the project:
 
 ```shell
    yarn build
 ```
 
-3. **Crie uma Branch**
-    - Crie uma branch para sua contribuição:
+3. **Create a Branch**
+    - Create a branch for your contribution:
 
 ```shell
-   git checkout -b feature/nome-da-sua-feature
+   git checkout -b feature/your-feature-name
 ```
 
-- Use prefixos que indicam o tipo de contribuição:
-    - `feature/` para novas funcionalidades
-    - `fix/` para correção de bugs
-    - `docs/` para melhorias na documentação
-    - `test/` para adição ou melhoria de testes
+- Use prefixes that indicate the type of contribution:
+    - `feature/` for new functionalities
+    - `fix/` for bug fixes
+    - `docs/` for documentation improvements
+    - `test/` for adding or improving tests
 
-4. **Desenvolvimento**
-    - Implemente suas alterações seguindo o estilo de código do projeto
-    - Adicione ou atualize testes relevantes
-    - Execute os testes para garantir que tudo está funcionando:
+4. **Development**
+    - Implement your changes following the project's code style
+    - Add or update relevant tests
+    - Run tests to ensure everything is working:
 
 ```shell
    yarn test
 ```
 
-5. **Envie sua Contribuição**
-    - Commit suas alterações com mensagens claras:
+5. **Submit your Contribution**
+    - Commit your changes with clear messages:
 
 ```shell
-   git commit -m "feat: adiciona suporte para estágio $replaceWith"
+   git commit -m "feat: add support for $replaceWith stage"
 ```
 
-- Envie para seu repositório:
+- Push to your repository:
 
 ```shell
-   git push origin feature/nome-da-sua-feature
+   git push origin feature/your-feature-name
 ```
 
-6. **Crie um Pull Request**
-    - Abra um Pull Request (PR) para o repositório principal
-    - Descreva detalhadamente suas alterações
-    - Referencie quaisquer issues relacionadas
+    6. **Create a Pull Request**
+    - Open a Pull Request (PR) to the main repository
+    - Describe your changes in detail
+    - Reference any related issues
 
-### Diretrizes de Código
+### Code Guidelines
 
-- Mantenha o código limpo e bem documentado
-- Siga as convenções de nomenclatura existentes
-- Adicione JSDoc para novas funções e métodos
-- Mantenha a cobertura de testes alta para novas funcionalidades
+- Keep the code clean and well-documented
+- Follow existing naming conventions
+- Add JSDoc for new functions and methods
+- Maintain high test coverage for new features
 
-### Áreas para Contribuição
+### Contribution Areas
 
-- **Novos Estágios de Agregação**: Implementação de estágios ainda não suportados
-- **Otimizações de Performance**: Melhorias no desempenho dos estágios existentes
-- **Adaptadores para Bancos de Dados**: Implementações para outros bancos de dados
-- **Documentação**: Exemplos, tutoriais e melhorias na documentação
-- **Testes**: Expansão da cobertura de testes e casos de teste
+- **New Aggregation Stages**: Implementation of stages not yet supported
+- **Performance Optimizations**: Improvements in the performance of existing stages
+- **Database Adapters**: Implementations for other databases
+- **Documentation**: Examples, tutorials, and documentation improvements
+- **Tests**: Expansion of test coverage and test cases
 
-### Relatando Bugs
+### Reporting Bugs
 
-Se você encontrar bugs ou problemas, por favor:
+If you find bugs or issues, please:
 
-1. Verifique se o problema já foi reportado
-2. Use o template de bug report para fornecer:
-    - Versão da biblioteca
-    - Ambiente (versão de Node.js, React, sistema operacional)
-    - Passos para reproduzir
-    - Comportamento esperado vs. comportamento atual
-    - Screenshots ou logs se aplicável
+1. Check if the issue has already been reported
+2. Use the bug report template to provide:
+    - Library version
+    - Environment (Node.js version, React version, operating system)
+    - Steps to reproduce
+    - Expected behavior vs. actual behavior
+    - Screenshots or logs if applicable
 
-### Solicitando Funcionalidades
+### Requesting Features
 
-Para solicitar novas funcionalidades:
+To request new features:
 
-1. Descreva claramente o que você gostaria de ver implementado
-2. Explique por que esta funcionalidade seria útil para a comunidade
-3. Forneça exemplos de como a funcionalidade poderia ser usada
+1. Clearly describe what you would like to see implemented
+2. Explain why this feature would be useful to the community
+3. Provide examples of how the feature could be used
 
-## Código de Conduta
+## Code of Conduct
 
-### Nosso Compromisso
+### Our Pledge
 
-No interesse de promover um ambiente aberto e acolhedor, nós, como contribuidores e mantenedores, nos comprometemos a
-tornar a participação em nosso projeto uma experiência livre de assédio para todos, independentemente de idade, tamanho
-corporal, deficiência, etnia, identidade e expressão de gênero, nível de experiência, nacionalidade, aparência, raça,
-religião ou identidade e orientação sexual.
+In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to
+make participation in our project a harassment-free experience for everyone, regardless of age, body
+size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race,
+religion, or sexual identity and orientation.
 
-### Nossos Padrões
+### Our Standards
 
-Exemplos de comportamento que contribuem para criar um ambiente positivo incluem:
+Examples of behavior that contributes to creating a positive environment include:
 
-- Usar linguagem acolhedora e inclusiva
-- Respeitar pontos de vista e experiências diferentes
-- Aceitar críticas construtivas graciosamente
-- Focar no que é melhor para a comunidade
-- Mostrar empatia para com outros membros da comunidade
+- Using welcoming and inclusive language
+- Respecting different viewpoints and experiences
+- Gracefully accepting constructive criticism
+- Focusing on what is best for the community
+- Showing empathy towards other community members
 
-Exemplos de comportamento inaceitável incluem:
+Examples of unacceptable behavior include:
 
-- Uso de linguagem ou imagens sexualizadas
-- Trolling, comentários insultuosos/depreciativos e ataques pessoais ou políticos
-- Assédio público ou privado
-- Publicação de informações privadas de terceiros sem permissão explícita
-- Outra conduta que poderia ser considerada inadequada em um ambiente profissional
+- The use of sexualized language or imagery
+- Trolling, insulting/derogatory comments, and personal or political attacks
+- Public or private harassment
+- Publishing others' private information without explicit permission
+- Other conduct which could reasonably be considered inappropriate in a professional setting
 
-### Responsabilidades
+### Responsibilities
 
-Os mantenedores do projeto são responsáveis por esclarecer os padrões de comportamento aceitável e espera-se que tomem
-ações corretivas apropriadas em resposta a quaisquer instâncias de comportamento inaceitável.
-Os mantenedores do projeto têm o direito e a responsabilidade de remover, editar ou rejeitar comentários, commits,
-código, edições de wiki, questões e outras contribuições que não estejam alinhadas com este Código de Conduta, ou banir
-temporária ou permanentemente qualquer contribuidor por outros comportamentos que consideram inadequados, ameaçadores,
-ofensivos ou prejudiciais.
+Project maintainers are responsible for clarifying the standards of acceptable behavior and are expected to take
+appropriate corrective action in response to any instances of unacceptable behavior.
+Project maintainers have the right and responsibility to remove, edit, or reject comments, commits,
+code, wiki edits, issues, and other contributions that are not aligned with this Code of Conduct, or to ban
+temporarily or permanently any contributor for other behaviors that they deem inappropriate, threatening,
+offensive, or harmful.
 
-## Licença
+## License
 
-O projeto react-aggregation é licenciado sob a [Licença MIT](https://opensource.org/licenses/MIT).
+The react-aggregation project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 ```
 MIT License
@@ -589,12 +586,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-A licença MIT é uma licença permissiva, o que significa que:
+The MIT License is a permissive license, which means that:
 
-- Você pode usar o código livremente em projetos pessoais e comerciais
-- Você pode modificar e distribuir o código
-- Você pode incluir o código em projetos com licenças diferentes
-- A única obrigação é incluir uma cópia da licença MIT e aviso de copyright em qualquer cópia do software/código-fonte
+- You can freely use the code in personal and commercial projects
+- You can modify and distribute the code
+- You can include the code in projects with different licenses
+- The only obligation is to include a copy of the MIT license and copyright notice in any copy of the software/source code
 
-Esta licença foi escolhida para maximizar a reutilização e contribuição ao projeto, mantendo requisitos mínimos para
-usuários finais.
+This license was chosen to maximize reuse and contribution to the project, while maintaining minimal requirements for
+end users.
